@@ -6,7 +6,7 @@
     .dependencies = .{
         .jemalloc = .{
             .url = "https://github.com/jemalloc/jemalloc/archive/refs/tags/5.3.0.tar.gz",
-            .hash = "1220018d05b405d30affa14b7e876e05dc8d7c40480653607ae60bbff48bcee28d96",
+            // .hash = "1220018d05b405d30affa14b7e876e05dc8d7c40480653607ae60bbff48bcee28d96",
             .lazy = true,
         },
     },

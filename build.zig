@@ -60,7 +60,7 @@ fn buildStaticLib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
     // sanitize will cause Illegal instruction when call je_realloc, so disable it now.
     lib.root_module.sanitize_c = false;
 
-    const is_darwin = target.result.isDarwin();
+    const is_darwin = target.result.os.tag.isDarwin();
     const is_linux = isLinux(target.result);
 
     const dir = try std.fs.cwd().openDir(dep.path("src").getPath(b), .{ .iterate = true });
@@ -237,7 +237,7 @@ fn buildStaticLib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
                 // Defined if madvise(2) is available but MADV_FREE is not (x86 Linux only).
                 .JEMALLOC_MADVISE_DONTDUMP = if (is_linux and is64bit(target.result)) {} else null,
                 .JEMALLOC_MADVISE_NOCORE = null,
-                .JEMALLOC_HAVE_MPROTECT = {},
+                .JEMALLOC_HAVE_MPROTECT = if (target.result.os.tag != .windows) {} else null,
                 .JEMALLOC_THP = null,
                 .JEMALLOC_HAVE_POSIX_MADVISE = null,
                 .JEMALLOC_PURGE_POSIX_MADVISE_DONTNEED = null,
@@ -262,7 +262,7 @@ fn buildStaticLib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
                 .JEMALLOC_EXPORT = null,
                 .JEMALLOC_CONFIG_MALLOC_CONF = "",
                 .JEMALLOC_IS_MALLOC = null,
-                .JEMALLOC_STRERROR_R_RETURNS_CHAR_WITH_GNU_SOURCE = target.result.isGnu(),
+                .JEMALLOC_STRERROR_R_RETURNS_CHAR_WITH_GNU_SOURCE = target.result.abi.isGnu(),
                 .JEMALLOC_OPT_SAFETY_CHECKS = null,
                 .JEMALLOC_ENABLE_CXX = null,
                 .JEMALLOC_OPT_SIZE_CHECKS = null,
@@ -275,7 +275,7 @@ fn buildStaticLib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
         if (target.result.cpu.arch.isX86()) {
             try header.values.put("CPU_SPINWAIT", .{ .ident = "__asm__ volatile(\"pause\")" });
             try header.values.put("HAVE_CPU_SPINWAIT", .{ .int = 1 });
-        } else if (target.result.cpu.arch.isARM() or target.result.cpu.arch.isAARCH64()) {
+        } else if (target.result.cpu.arch.isArm() or target.result.cpu.arch.isAARCH64()) {
             try header.values.put("CPU_SPINWAIT", .{ .ident = "__asm__ volatile(\"isb\")" });
             try header.values.put("HAVE_CPU_SPINWAIT", .{ .int = 1 });
         } else {
@@ -285,9 +285,9 @@ fn buildStaticLib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
         lib.addConfigHeader(header);
     }
     if (is_linux) {
-        lib.defineCMacro("_GNU_SOURCE", null);
+        lib.root_module.addCMacro("_GNU_SOURCE", "1");
     }
-    lib.defineCMacro("_GNUC_", null);
+    lib.root_module.addCMacro("_GNUC_", "1");
     lib.addIncludePath(b.path("include"));
     lib.addIncludePath(dep.path("include"));
     lib.installHeader(b.path("include/jemalloc/jemalloc.h"), "jemalloc/jemalloc.h");
