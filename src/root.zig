@@ -11,6 +11,7 @@ pub const allocator = std.mem.Allocator{
     .vtable = &.{
         .alloc = alloc,
         .resize = resize,
+        .remap = remap,
         .free = free,
     },
 };
@@ -29,10 +30,10 @@ pub fn collectMallocStats(wtr: anytype, opts: ?[:0]const u8) void {
     }.cb, context, if (opts) |v| v else null);
 }
 
-fn alloc(_: *anyopaque, n: usize, log2_align: u8, return_address: usize) ?[*]u8 {
+fn alloc(_: *anyopaque, n: usize, log2_align: std.mem.Alignment, return_address: usize) ?[*]u8 {
     _ = return_address;
 
-    const alignment = @as(usize, 1) << @as(Allocator.Log2Align, @intCast(log2_align));
+    const alignment = log2_align.toByteUnits();
     const ptr = c.je_aligned_alloc(alignment, n) orelse return null;
     return @ptrCast(ptr);
 }
@@ -40,7 +41,7 @@ fn alloc(_: *anyopaque, n: usize, log2_align: u8, return_address: usize) ?[*]u8 
 fn resize(
     _: *anyopaque,
     buf_unaligned: []u8,
-    log2_buf_align: u8,
+    log2_buf_align: std.mem.Alignment,
     new_size: usize,
     return_address: usize,
 ) bool {
@@ -49,7 +50,22 @@ fn resize(
     return c.je_malloc_usable_size(buf_unaligned.ptr) >= new_size;
 }
 
-fn free(_: *anyopaque, slice: []u8, log2_buf_align: u8, return_address: usize) void {
+fn remap(
+    _: *anyopaque,
+    buf_unaligned: []u8,
+    log2_buf_align: std.mem.Alignment,
+    new_size: usize,
+    return_address: usize,
+) ?[*]u8 {
+    _ = log2_buf_align;
+    _ = return_address;
+    if (c.je_malloc_usable_size(buf_unaligned.ptr) >= new_size) {
+        return @ptrCast(buf_unaligned.ptr);
+    }
+    return null;
+}
+
+fn free(_: *anyopaque, slice: []u8, log2_buf_align: std.mem.Alignment, return_address: usize) void {
     _ = log2_buf_align;
     _ = return_address;
     c.je_free(slice.ptr);
