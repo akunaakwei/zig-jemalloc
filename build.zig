@@ -186,7 +186,7 @@ fn buildStaticLib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
                 .JEMALLOC_HAVE_ISSETUGID = if (is_darwin) {} else null,
                 .JEMALLOC_HAVE_PTHREAD_ATFORK = {},
                 .JEMALLOC_HAVE_PTHREAD_SETNAME_NP = if (is_linux) {} else null,
-                .JEMALLOC_HAVE_PTHREAD_GETNAME_NP = {},
+                .JEMALLOC_HAVE_PTHREAD_GETNAME_NP = if (is_linux) {} else null,
                 .JEMALLOC_HAVE_PTHREAD_GET_NAME_NP = null,
                 .JEMALLOC_HAVE_CLOCK_MONOTONIC_COARSE = if (is_linux) {} else null,
                 .JEMALLOC_HAVE_CLOCK_MONOTONIC = if (is_linux) {} else null,
